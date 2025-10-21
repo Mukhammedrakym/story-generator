@@ -1,6 +1,7 @@
 # Python
 python-service/venv/
 python-service/.venv/
+python-service/.env
 python-service/__pycache__/
 python-service/app/__pycache__/
 python-service/.pytest_cache/
