@@ -1,0 +1,23 @@
+# Python
+python-service/venv/
+python-service/.venv/
+python-service/__pycache__/
+python-service/app/__pycache__/
+python-service/.pytest_cache/
+python-service/*.pyc
+
+# PHP / Yii2
+yii2-app/vendor/
+yii2-app/runtime/
+yii2-app/web/assets/
+yii2-app/.env
+
+# General
+.DS_Store
+*.log
+*.tmp
+
+# IDE
+.idea/
+.vscode/
+.fleet/
