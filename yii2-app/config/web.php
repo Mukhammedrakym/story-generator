@@ -51,6 +51,11 @@ $config = [
         ],
         */
     ],
+    'modules' => [
+        'story' => [
+            'class' => 'app\modules\story\Module',
+        ],
+    ],
     'params' => $params,
 ];
 
