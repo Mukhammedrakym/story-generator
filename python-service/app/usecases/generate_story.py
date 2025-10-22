@@ -4,8 +4,10 @@ from app.domain.value_objects import Age, Language, LANG_LABELS
 from app.ports.llm import LLM
 from app.core.errors import UpstreamError
 
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+def _now_readable() -> str:
+    """Возвращает читаемое время в локальном формате"""
+    now = datetime.now()
+    return now.strftime("%d.%m.%Y в %H:%M")
 
 async def generate_story_stream(
     llm: LLM,
@@ -26,7 +28,7 @@ async def generate_story_stream(
         f"с персонажами: {chars}. Начинай сразу с текста сказки. "
         "6–12 абзацев, добрый и понятный слог. Возвращай чистый Markdown, без списков."
     )
-    footer = f"\n\n---\n_Сказка сгенерирована: {_now_iso()}_\n"
+    footer = f"\n\n---\n_Сказка сгенерирована: {_now_readable()}_\n"
 
     # отдаём шапку сразу
     yield header
