@@ -4,7 +4,7 @@ namespace app\modules\story;
 class Module extends \yii\base\Module
 {
     public $controllerNamespace = 'app\modules\story\controllers';
-    public $pythonApiUrl = 'http://localhost:8000';
+    public string $pythonApiUrl = 'http://localhost:8000'; // <-- база
 
     public function init()
     {

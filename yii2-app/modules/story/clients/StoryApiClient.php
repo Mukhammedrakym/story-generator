@@ -7,13 +7,21 @@ use Psr\Http\Message\ResponseInterface;
 final class StoryApiClient {
     private Client $http;
     public function __construct(string $baseUrl) {
-        $this->http = new Client(['base_uri'=>$baseUrl,'timeout'=>0,'http_errors'=>false]);
+        $this->http = new Client([
+            'base_uri'     => rtrim($baseUrl, '/'),
+            'timeout'      => 0,
+            'http_errors'  => false,
+            'read_timeout' => 0,
+        ]);
     }
     public function stream(array $payload): ResponseInterface {
         return $this->http->post('/generate_story', [
-            'headers'=>['Accept'=>'text/markdown','Content-Type'=>'application/json'],
-            'json'=>$payload,
-            'stream'=>true,
+            'headers'=>[
+                'Accept'       => 'text/markdown',
+                'Content-Type' => 'application/json',
+            ],
+            'json'   => $payload,
+            'stream'=> true,
         ]);
     }
 }

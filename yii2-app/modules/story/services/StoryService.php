@@ -1,38 +1,48 @@
 <?php
 namespace app\modules\story\services;
 
+use Yii;
+use yii\web\Response;
 use app\modules\story\clients\StoryApiClient;
-use app\modules\story\exceptions\UpstreamException;
 
-final class StoryService {
+final class StoryService
+{
     public function __construct(private StoryApiClient $client) {}
 
-    public function streamToBrowser(array $payload): void {
-        $res = $this->client->stream($payload);
-
-        if ($res->getStatusCode() >= 400) {
-            throw new UpstreamException((string)$res->getBody(), $res->getStatusCode());
+    public function streamToBrowser(array $payload): void
+    {
+        // Отключаем буферизацию вывода
+        if (ob_get_level()) {
+            ob_end_clean();
         }
 
-        $body = $res->getBody();
-        $response = \Yii::$app->response;
-        $response->format = \yii\web\Response::FORMAT_RAW;
-        $response->headers->set('Content-Type','text/markdown; charset=utf-8');
-        $response->headers->set('Cache-Control','no-cache');
-        $response->headers->set('X-Accel-Buffering','no');
+        // Устанавливаем заголовки
+        header('Content-Type: text/markdown; charset=UTF-8');
+        header('Cache-Control: no-cache, no-transform');
+        header('X-Accel-Buffering: no');
 
-        @ini_set('output_buffering','off');
-        @ini_set('zlib.output_compression','0');
-        while (ob_get_level()>0) { @ob_end_flush(); }
-        ob_implicit_flush(true);
-        set_time_limit(0);
+        // Отключаем обработку ошибок Yii для этого запроса
+        Yii::$app->errorHandler->discardExistingOutput = true;
 
-        $response->stream = function() use ($body) {
-            while (!$body->eof()) {
-                echo $body->read(8192);
-                flush();
+        $resp = $this->client->stream($payload);
+
+        if ($resp->getStatusCode() >= 400) {
+            echo "\n\n---\n_Ошибка: Python-сервис ответил {$resp->getStatusCode()}._";
+            return;
+        }
+
+        $body = $resp->getBody();
+        // читаем и шлем чанки напрямую
+        while (!$body->eof()) {
+            $chunk = $body->read(8192);
+            if ($chunk === '') {
+                usleep(10000);
+                continue;
             }
-        };
+            echo $chunk;
+        }
+
+        // Завершаем выполнение
+        exit;
     }
 }
-
