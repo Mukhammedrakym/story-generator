@@ -11,17 +11,14 @@ final class StoryService
 
     public function streamToBrowser(array $payload): void
     {
-        // Отключаем буферизацию вывода
         if (ob_get_level()) {
             ob_end_clean();
         }
 
-        // Устанавливаем заголовки
         header('Content-Type: text/markdown; charset=UTF-8');
         header('Cache-Control: no-cache, no-transform');
         header('X-Accel-Buffering: no');
 
-        // Отключаем обработку ошибок Yii для этого запроса
         Yii::$app->errorHandler->discardExistingOutput = true;
 
         $resp = $this->client->stream($payload);
@@ -32,7 +29,6 @@ final class StoryService
         }
 
         $body = $resp->getBody();
-        // читаем и шлем чанки напрямую
         while (!$body->eof()) {
             $chunk = $body->read(8192);
             if ($chunk === '') {
@@ -41,8 +37,6 @@ final class StoryService
             }
             echo $chunk;
         }
-
-        // Завершаем выполнение
         exit;
     }
 }

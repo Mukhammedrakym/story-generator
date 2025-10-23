@@ -3,26 +3,29 @@ use yii\widgets\ActiveForm;
 use yii\helpers\Html;
 use yii\helpers\Url;
 use app\modules\story\models\StoryForm;
+use app\modules\story\assets\StoryAsset;
 
 /** @var $model StoryForm */
 $this->title = 'Генератор сказок';
 $streamUrl = Url::to(['/story/default/stream']);
 $charactersUrl = Url::to(['/story/default/get-characters']);
 $csrf = Yii::$app->request->getCsrfToken();
+
+StoryAsset::register($this);
 ?>
+
 <div style="max-width:800px;margin:24px auto">
     <h1><?= Html::encode($this->title) ?></h1>
 
     <?php $form = ActiveForm::begin([
             'id' => 'story-form',
-            'action' => '', // остаёмся на той же странице
-            'options' => ['onsubmit' => 'return false;'], // запретим обычный submit
+            'action' => '',
+            'options' => ['onsubmit' => 'return false;'],
     ]); ?>
 
     <?= $form->field($model,'age')->label('Возраст')->input('number',['min'=>1,'value'=>$model->age]) ?>
     <?= $form->field($model,'language')->label('Язык')->dropDownList(['ru'=>'Русский','kk'=>'Қазақша'],['value'=>$model->language, 'id'=>'language-select']) ?>
 
-    <!-- Динамические чекбоксы персонажей -->
     <div class="form-group">
         <label class="control-label">Персонажи</label>
         <div id="characters-container" class="characters-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
@@ -40,304 +43,16 @@ $csrf = Yii::$app->request->getCsrfToken();
     </div>
     <?php ActiveForm::end(); ?>
 
-    <!-- Изменяем pre на div для HTML контента -->
     <div id="out" style="border:1px solid #ddd;padding:20px;border-radius:8px;min-height:160px;background:#f9f9f9;font-family:Georgia,serif;line-height:1.6"></div>
     <div id="err" style="color:#b00020;margin-top:8px"></div>
 </div>
 
-<!-- Подключаем библиотеку для рендеринга Markdown -->
 <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 
 <script>
-    (() => {
-        const form   = document.getElementById('story-form');
-        const out    = document.getElementById('out');
-        const err    = document.getElementById('err');
-        const status = document.getElementById('status');
-        const statusText = document.getElementById('status-text');
-        const languageSelect = document.getElementById('language-select');
-        const charactersContainer = document.getElementById('characters-container');
-        const url    = <?= json_encode($streamUrl) ?>;
-        const charactersUrl = <?= json_encode($charactersUrl) ?>;
-        const csrf   = <?= json_encode($csrf) ?>;
-
-        // Функция для загрузки персонажей через AJAX
-        async function loadCharacters(language) {
-            try {
-                const response = await fetch(`${charactersUrl}?language=${language}`);
-                const characters = await response.json();
-
-                charactersContainer.innerHTML = '';
-
-                Object.entries(characters).forEach(([key, label]) => {
-                    const characterItem = document.createElement('div');
-                    characterItem.className = 'character-item';
-                    characterItem.style.cssText = 'display: flex; align-items: center; padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: #f9f9f9;';
-
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.name = 'StoryForm[characters][]';
-                    checkbox.value = key;
-                    checkbox.id = `char_${key}`;
-                    checkbox.style.cssText = 'margin-right: 8px; transform: scale(1.2);';
-
-                    const labelElement = document.createElement('label');
-                    labelElement.htmlFor = `char_${key}`;
-                    labelElement.style.cssText = 'margin: 0; cursor: pointer; flex: 1;';
-                    labelElement.textContent = label;
-
-                    characterItem.appendChild(checkbox);
-                    characterItem.appendChild(labelElement);
-                    charactersContainer.appendChild(characterItem);
-                });
-            } catch (error) {
-                console.error('Ошибка загрузки персонажей:', error);
-                charactersContainer.innerHTML = '<div style="color: red;">Ошибка загрузки персонажей</div>';
-            }
-        }
-
-        // Обработчик изменения языка
-        languageSelect.addEventListener('change', function() {
-            loadCharacters(this.value);
-        });
-
-        // Настройка marked для красивого рендеринга
-        marked.setOptions({
-            breaks: true,
-            gfm: true,
-            sanitize: false
-        });
-
-        // Массив сообщений для показа прогресса
-        const progressMessages = [
-            'Подготовка к генерации...',
-            'Отправка запроса к AI...',
-            'AI думает над сказкой...',
-            'Генерируем текст...',
-            'Почти готово...'
-        ];
-
-        let progressInterval;
-
-        function showProgress() {
-            status.style.display = 'inline-block';
-            let messageIndex = 0;
-
-            statusText.textContent = progressMessages[messageIndex];
-
-            progressInterval = setInterval(() => {
-                messageIndex = (messageIndex + 1) % progressMessages.length;
-                statusText.textContent = progressMessages[messageIndex];
-            }, 3000);
-        }
-
-        function hideProgress() {
-            status.style.display = 'none';
-            if (progressInterval) {
-                clearInterval(progressInterval);
-            }
-        }
-
-        function showEstimatedTime() {
-            const estimatedTime = document.createElement('div');
-            estimatedTime.id = 'estimated-time';
-            estimatedTime.style.cssText = 'color: #666; font-size: 12px; margin-top: 5px;';
-            estimatedTime.textContent = 'Примерное время генерации: 20-30 секунд';
-            status.parentNode.appendChild(estimatedTime);
-        }
-
-        function hideEstimatedTime() {
-            const elem = document.getElementById('estimated-time');
-            if (elem) elem.remove();
-        }
-
-        form.addEventListener('submit', async () => {
-            // собрать payload из формы
-            const fd = new FormData(form);
-            const age = Number(fd.get('StoryForm[age]') || 0);
-            const language = fd.get('StoryForm[language]');
-            const characters = fd.getAll('StoryForm[characters][]');
-
-            out.innerHTML = '';
-            err.textContent = '';
-            form.querySelector('#go').disabled = true;
-
-            showProgress();
-            showEstimatedTime();
-
-            let markdownContent = '';
-            let hasStarted = false;
-
-            try {
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrf
-                    },
-                    body: JSON.stringify({ age, language, characters })
-                });
-
-                if (!res.ok || !res.body) {
-                    hideProgress();
-                    hideEstimatedTime();
-                    const txt = await res.text();
-                    err.textContent = txt || (res.status + ' ' + res.statusText);
-                    form.querySelector('#go').disabled = false;
-                    return;
-                }
-
-                const reader = res.body.getReader();
-                const dec = new TextDecoder();
-
-                while (true) {
-                    const {value, done} = await reader.read();
-                    if (done) break;
-
-                    const chunk = dec.decode(value, {stream: true});
-                    markdownContent += chunk;
-
-                    if (!hasStarted && chunk.trim()) {
-                        hasStarted = true;
-                        statusText.textContent = 'Получение сказки...';
-                    }
-
-                    out.innerHTML = marked.parse(markdownContent);
-                }
-
-                hideProgress();
-                hideEstimatedTime();
-                statusText.textContent = 'Готово!';
-                setTimeout(() => {
-                    status.style.display = 'none';
-                }, 2000);
-
-            } catch (e) {
-                hideProgress();
-                hideEstimatedTime();
-                err.textContent = 'Ошибка сети: ' + (e?.message || e);
-            } finally {
-                form.querySelector('#go').disabled = false;
-            }
-        });
-
-        // Инициализация - загружаем персонажей для текущего языка
-        loadCharacters(languageSelect.value);
-    })();
+    window.storyConfig = {
+        streamUrl: <?= json_encode($streamUrl) ?>,
+        charactersUrl: <?= json_encode($charactersUrl) ?>,
+        csrf: <?= json_encode($csrf) ?>
+    };
 </script>
-
-<style>
-    /* Стили для чекбоксов */
-    .characters-grid {
-        margin-top: 10px;
-    }
-
-    .character-item {
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-
-    .character-item:hover {
-        background: #e9ecef !important;
-        border-color: #007bff !important;
-    }
-
-    .character-item input[type="checkbox"]:checked + label {
-        font-weight: bold;
-        color: #007bff;
-    }
-
-    .character-item:has(input[type="checkbox"]:checked) {
-        background: #e3f2fd !important;
-        border-color: #007bff !important;
-    }
-
-    /* Стили для спиннера */
-    .spinner-border-sm {
-        width: 1rem;
-        height: 1rem;
-        border-width: 0.1em;
-    }
-
-    .spinner-border {
-        display: inline-block;
-        width: 2rem;
-        height: 2rem;
-        vertical-align: text-bottom;
-        border: 0.25em solid currentColor;
-        border-right-color: transparent;
-        border-radius: 50%;
-        animation: spinner-border .75s linear infinite;
-    }
-
-    @keyframes spinner-border {
-        to { transform: rotate(360deg); }
-    }
-
-    /* Дополнительные стили для улучшения UX */
-    #go:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    #out {
-        transition: opacity 0.3s ease;
-    }
-
-    #out:empty {
-        opacity: 0.5;
-    }
-
-    /* Анимация появления контента */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    #out > * {
-        animation: fadeIn 0.5s ease;
-    }
-
-    /* Дополнительные стили для красивого отображения */
-    #out h1 {
-        color: #2c3e50;
-        border-bottom: 2px solid #3498db;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
-    }
-
-    #out h2 {
-        color: #34495e;
-        margin-top: 25px;
-        margin-bottom: 15px;
-    }
-
-    #out p {
-        margin-bottom: 15px;
-        text-align: justify;
-    }
-
-    #out strong {
-        color: #2980b9;
-        font-weight: 600;
-    }
-
-    #out em {
-        color: #7f8c8d;
-        font-style: italic;
-    }
-
-    #out hr {
-        border: none;
-        border-top: 1px solid #bdc3c7;
-        margin: 20px 0;
-    }
-
-    #out blockquote {
-        border-left: 4px solid #3498db;
-        margin: 20px 0;
-        padding-left: 20px;
-        color: #7f8c8d;
-        font-style: italic;
-    }
-</style>

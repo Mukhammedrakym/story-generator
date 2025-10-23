@@ -1,5 +1,4 @@
 <?php
-// modules/story/controllers/DefaultController.php
 namespace app\modules\story\controllers;
 
 use yii\web\Controller;

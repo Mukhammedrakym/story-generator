@@ -21,6 +21,12 @@ class StoryForm extends Model
         ];
     }
 
+    public function validateCharacters($attribute, $params)
+    {
+        if (!is_array($this->$attribute) || count(array_filter($this->$attribute)) < 1) {
+            $this->addError($attribute, 'Выберите хотя бы одного персонажа.');
+        }
+    }
     public static function availableCharacters($language = 'ru')
     {
         $characters = [
