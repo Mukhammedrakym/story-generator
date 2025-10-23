@@ -20,7 +20,6 @@ class DomainValidationError(AppError):
 class UpstreamError(AppError):
     status_code = status.HTTP_502_BAD_GATEWAY
 
-# Добавьте эти функции:
 async def app_error_handler(_req: Request, exc: AppError):
     return JSONResponse(
         status_code=exc.status_code,

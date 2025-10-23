@@ -5,7 +5,6 @@ from app.ports.llm import LLM
 from app.core.errors import UpstreamError
 
 def _now_readable() -> str:
-    """Возвращает читаемое время в локальном формате"""
     now = datetime.now()
     return now.strftime("%d.%m.%Y в %H:%M")
 
@@ -30,13 +29,11 @@ async def generate_story_stream(
     )
     footer = f"\n\n---\n_Сказка сгенерирована: {_now_readable()}_\n"
 
-    # отдаём шапку сразу
     yield header
     try:
         async for chunk in llm.stream_story(prompt):
             yield chunk
     except Exception as e:
-        # маппим любые сбои провайдера в единый апстрим-эксепшн
         raise UpstreamError(str(e))
     finally:
         yield footer

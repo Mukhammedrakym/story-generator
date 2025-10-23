@@ -10,9 +10,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = Field(default=None)
     OPENAI_MODEL: str = Field("gpt-4o-mini")
 
-    # Gemini - используем правильные названия моделей из документации
+    # Gemini
     GEMINI_API_KEY: Optional[str] = Field(default=None)
-    GEMINI_MODEL: str = Field("gemini-2.5-flash")  # Согласно документации
+    GEMINI_MODEL: str = Field("gemini-2.5-flash")
 
     CORS_ORIGINS: List[str] = ["*"]
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")

@@ -20,7 +20,6 @@ app.include_router(story_router)
 def healthz():
     return {"status": "ok"}
 
-# error handlers (JSON для непотоковых эндпоинтов и синхронных ошибок)
 app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(Exception, unhandled_error_handler)
 
