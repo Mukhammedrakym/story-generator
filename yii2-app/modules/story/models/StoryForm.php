@@ -16,8 +16,7 @@ class StoryForm extends Model
             ['age','integer','min'=>1],
             ['language','in','range'=>['ru','kk']],
             ['characters','each','rule'=>['string']],
-            ['characters', function($attr){ if (!is_array($this->$attr) || count(array_filter($this->$attr))<1)
-                $this->addError($attr,'Выберите хотя бы одного персонажа.'); }],
+            ['characters', 'validateCharacters'],
         ];
     }
 
