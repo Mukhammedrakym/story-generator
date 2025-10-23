@@ -44,7 +44,10 @@ $csrf = Yii::$app->request->getCsrfToken();
 
     <div class="form-group">
         <?= Html::submitButton('Сгенерировать', ['class'=>'btn btn-primary', 'id'=>'go']) ?>
-        <span id="status" style="margin-left:10px;color:#666"></span>
+        <div id="status" style="margin-left:10px;display:none;">
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            <span id="status-text">Подготовка к генерации...</span>
+        </div>
     </div>
     <?php ActiveForm::end(); ?>
 
@@ -62,6 +65,7 @@ $csrf = Yii::$app->request->getCsrfToken();
         const out    = document.getElementById('out');
         const err    = document.getElementById('err');
         const status = document.getElementById('status');
+        const statusText = document.getElementById('status-text');
         const url    = <?= json_encode($streamUrl) ?>;
         const csrf   = <?= json_encode($csrf) ?>;
 
@@ -72,6 +76,49 @@ $csrf = Yii::$app->request->getCsrfToken();
             sanitize: false
         });
 
+        // Массив сообщений для показа прогресса
+        const progressMessages = [
+            'Подготовка к генерации...',
+            'Отправка запроса к AI...',
+            'AI думает над сказкой...',
+            'Генерируем текст...',
+            'Почти готово...'
+        ];
+
+        let progressInterval;
+
+        function showProgress() {
+            status.style.display = 'inline-block';
+            let messageIndex = 0;
+
+            statusText.textContent = progressMessages[messageIndex];
+
+            progressInterval = setInterval(() => {
+                messageIndex = (messageIndex + 1) % progressMessages.length;
+                statusText.textContent = progressMessages[messageIndex];
+            }, 3000); // Меняем сообщение каждые 3 секунды
+        }
+
+        function hideProgress() {
+            status.style.display = 'none';
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+        }
+
+        function showEstimatedTime() {
+            const estimatedTime = document.createElement('div');
+            estimatedTime.id = 'estimated-time';
+            estimatedTime.style.cssText = 'color: #666; font-size: 12px; margin-top: 5px;';
+            estimatedTime.textContent = 'Примерное время генерации: 20-30 секунд';
+            status.parentNode.appendChild(estimatedTime);
+        }
+
+        function hideEstimatedTime() {
+            const elem = document.getElementById('estimated-time');
+            if (elem) elem.remove();
+        }
+
         form.addEventListener('submit', async () => {
             // собрать payload из формы
             const fd = new FormData(form);
@@ -81,10 +128,13 @@ $csrf = Yii::$app->request->getCsrfToken();
 
             out.innerHTML = '';
             err.textContent = '';
-            status.textContent = 'Генерация...';
             form.querySelector('#go').disabled = true;
 
+            showProgress();
+            showEstimatedTime();
+
             let markdownContent = '';
+            let hasStarted = false;
 
             try {
                 const res = await fetch(url, {
@@ -97,7 +147,8 @@ $csrf = Yii::$app->request->getCsrfToken();
                 });
 
                 if (!res.ok || !res.body) {
-                    status.textContent = '';
+                    hideProgress();
+                    hideEstimatedTime();
                     const txt = await res.text();
                     err.textContent = txt || (res.status + ' ' + res.statusText);
                     form.querySelector('#go').disabled = false;
@@ -114,14 +165,27 @@ $csrf = Yii::$app->request->getCsrfToken();
                     const chunk = dec.decode(value, {stream: true});
                     markdownContent += chunk;
 
+                    // Показываем прогресс только после начала получения данных
+                    if (!hasStarted && chunk.trim()) {
+                        hasStarted = true;
+                        statusText.textContent = 'Получение сказки...';
+                    }
+
                     // Рендерим накопленный Markdown в HTML
                     out.innerHTML = marked.parse(markdownContent);
                 }
 
-                status.textContent = 'Готово';
+                hideProgress();
+                hideEstimatedTime();
+                statusText.textContent = 'Готово!';
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 2000);
+
             } catch (e) {
+                hideProgress();
+                hideEstimatedTime();
                 err.textContent = 'Ошибка сети: ' + (e?.message || e);
-                status.textContent = '';
             } finally {
                 form.querySelector('#go').disabled = false;
             }
@@ -153,6 +217,52 @@ $csrf = Yii::$app->request->getCsrfToken();
     .character-item:has(input[type="checkbox"]:checked) {
         background: #e3f2fd !important;
         border-color: #007bff !important;
+    }
+
+    /* Стили для спиннера */
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+        border-width: 0.1em;
+    }
+
+    .spinner-border {
+        display: inline-block;
+        width: 2rem;
+        height: 2rem;
+        vertical-align: text-bottom;
+        border: 0.25em solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        animation: spinner-border .75s linear infinite;
+    }
+
+    @keyframes spinner-border {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Дополнительные стили для улучшения UX */
+    #go:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    #out {
+        transition: opacity 0.3s ease;
+    }
+
+    #out:empty {
+        opacity: 0.5;
+    }
+
+    /* Анимация появления контента */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    #out > * {
+        animation: fadeIn 0.5s ease;
     }
 
     /* Дополнительные стили для красивого отображения */
