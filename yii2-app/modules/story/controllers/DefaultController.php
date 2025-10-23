@@ -13,12 +13,21 @@ class DefaultController extends Controller
     public function actionIndex()
     {
         $model = new StoryForm();
-        // можно дефолты
         $model->age = 6;
         $model->language = 'kk';
-        $model->characters = ['Заяц', 'Алдар Көсе'];
+        $model->characters = ['Қоян', 'Алдар Көсе'];
 
         return $this->render('index', ['model' => $model]);
+    }
+
+    public function actionGetCharacters()
+    {
+        \Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $language = \Yii::$app->request->get('language', 'kk');
+        $characters = StoryForm::availableCharacters($language);
+
+        return $characters;
     }
 
     public function actionStream()
@@ -43,7 +52,6 @@ class DefaultController extends Controller
             'characters' => array_values($model->characters),
         ]);
 
-        // Этот return никогда не выполнится из-за exit в streamToBrowser
         return '';
     }
 }

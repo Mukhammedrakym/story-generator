@@ -51,6 +51,7 @@ $config = [
             'rules' => [
                 '' => 'story/default/index',
                 'story/stream' => 'story/default/stream',
+                'story/get-characters' => 'story/default/get-characters',
             ],
         ],
     ],

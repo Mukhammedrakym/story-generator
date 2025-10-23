@@ -7,6 +7,7 @@ use app\modules\story\models\StoryForm;
 /** @var $model StoryForm */
 $this->title = 'Генератор сказок';
 $streamUrl = Url::to(['/story/default/stream']);
+$charactersUrl = Url::to(['/story/default/get-characters']);
 $csrf = Yii::$app->request->getCsrfToken();
 ?>
 <div style="max-width:800px;margin:24px auto">
@@ -18,26 +19,14 @@ $csrf = Yii::$app->request->getCsrfToken();
             'options' => ['onsubmit' => 'return false;'], // запретим обычный submit
     ]); ?>
 
-    <?= $form->field($model,'age')->input('number',['min'=>1,'value'=>$model->age]) ?>
-    <?= $form->field($model,'language')->dropDownList(['ru'=>'Русский','kk'=>'Қазақша'],['value'=>$model->language]) ?>
+    <?= $form->field($model,'age')->label('Возраст')->input('number',['min'=>1,'value'=>$model->age]) ?>
+    <?= $form->field($model,'language')->label('Язык')->dropDownList(['ru'=>'Русский','kk'=>'Қазақша'],['value'=>$model->language, 'id'=>'language-select']) ?>
 
-    <!-- Улучшенные чекбоксы -->
+    <!-- Динамические чекбоксы персонажей -->
     <div class="form-group">
         <label class="control-label">Персонажи</label>
-        <div class="characters-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
-            <?php foreach (StoryForm::availableCharacters() as $key => $label): ?>
-                <div class="character-item" style="display: flex; align-items: center; padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: #f9f9f9;">
-                    <input type="checkbox"
-                           name="StoryForm[characters][]"
-                           value="<?= Html::encode($key) ?>"
-                           id="char_<?= $key ?>"
-                            <?= in_array($key, $model->characters) ? 'checked' : '' ?>
-                           style="margin-right: 8px; transform: scale(1.2);">
-                    <label for="char_<?= $key ?>" style="margin: 0; cursor: pointer; flex: 1;">
-                        <?= Html::encode($label) ?>
-                    </label>
-                </div>
-            <?php endforeach; ?>
+        <div id="characters-container" class="characters-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+            <!-- Персонажи будут загружены через AJAX -->
         </div>
         <div class="help-block">Выберите одного или нескольких персонажей</div>
     </div>
@@ -66,8 +55,51 @@ $csrf = Yii::$app->request->getCsrfToken();
         const err    = document.getElementById('err');
         const status = document.getElementById('status');
         const statusText = document.getElementById('status-text');
+        const languageSelect = document.getElementById('language-select');
+        const charactersContainer = document.getElementById('characters-container');
         const url    = <?= json_encode($streamUrl) ?>;
+        const charactersUrl = <?= json_encode($charactersUrl) ?>;
         const csrf   = <?= json_encode($csrf) ?>;
+
+        // Функция для загрузки персонажей через AJAX
+        async function loadCharacters(language) {
+            try {
+                const response = await fetch(`${charactersUrl}?language=${language}`);
+                const characters = await response.json();
+
+                charactersContainer.innerHTML = '';
+
+                Object.entries(characters).forEach(([key, label]) => {
+                    const characterItem = document.createElement('div');
+                    characterItem.className = 'character-item';
+                    characterItem.style.cssText = 'display: flex; align-items: center; padding: 8px; border: 1px solid #ddd; border-radius: 6px; background: #f9f9f9;';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.name = 'StoryForm[characters][]';
+                    checkbox.value = key;
+                    checkbox.id = `char_${key}`;
+                    checkbox.style.cssText = 'margin-right: 8px; transform: scale(1.2);';
+
+                    const labelElement = document.createElement('label');
+                    labelElement.htmlFor = `char_${key}`;
+                    labelElement.style.cssText = 'margin: 0; cursor: pointer; flex: 1;';
+                    labelElement.textContent = label;
+
+                    characterItem.appendChild(checkbox);
+                    characterItem.appendChild(labelElement);
+                    charactersContainer.appendChild(characterItem);
+                });
+            } catch (error) {
+                console.error('Ошибка загрузки персонажей:', error);
+                charactersContainer.innerHTML = '<div style="color: red;">Ошибка загрузки персонажей</div>';
+            }
+        }
+
+        // Обработчик изменения языка
+        languageSelect.addEventListener('change', function() {
+            loadCharacters(this.value);
+        });
 
         // Настройка marked для красивого рендеринга
         marked.setOptions({
@@ -96,7 +128,7 @@ $csrf = Yii::$app->request->getCsrfToken();
             progressInterval = setInterval(() => {
                 messageIndex = (messageIndex + 1) % progressMessages.length;
                 statusText.textContent = progressMessages[messageIndex];
-            }, 3000); // Меняем сообщение каждые 3 секунды
+            }, 3000);
         }
 
         function hideProgress() {
@@ -165,13 +197,11 @@ $csrf = Yii::$app->request->getCsrfToken();
                     const chunk = dec.decode(value, {stream: true});
                     markdownContent += chunk;
 
-                    // Показываем прогресс только после начала получения данных
                     if (!hasStarted && chunk.trim()) {
                         hasStarted = true;
                         statusText.textContent = 'Получение сказки...';
                     }
 
-                    // Рендерим накопленный Markdown в HTML
                     out.innerHTML = marked.parse(markdownContent);
                 }
 
@@ -190,6 +220,9 @@ $csrf = Yii::$app->request->getCsrfToken();
                 form.querySelector('#go').disabled = false;
             }
         });
+
+        // Инициализация - загружаем персонажей для текущего языка
+        loadCharacters(languageSelect.value);
     })();
 </script>
 
