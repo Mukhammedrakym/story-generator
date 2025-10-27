@@ -16,7 +16,6 @@ class StoryService
 
     public function streamToBrowser(array $payload)
     {
-        // Создаем Guzzle клиент напрямую для streaming
         $client = new Client([
             'timeout' => 0,
             'read_timeout' => 0,
@@ -39,7 +38,6 @@ class StoryService
             );
         }
 
-        // Отключаем буферизацию для streaming
         if (ob_get_level()) {
             ob_end_clean();
         }

@@ -98,3 +98,35 @@
     color: #7f8c8d;
     font-style: italic;
 }
+
+/* Мультиселект */
+#characters-select {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 14px;
+}
+
+#characters-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+#characters-select option {
+    padding: 6px 8px;
+    cursor: pointer;
+}
+
+#characters-select option:hover {
+    background-color: #e9ecef;
+}
+
+#characters-select option:checked {
+    background-color: #007bff;
+    color: white;
+}
+
+.character-item {
+    display: none !important; /* Скрываем старые чекбоксы если они есть */
+}

@@ -4,6 +4,8 @@
 
 @push('styles')
     <link rel="stylesheet" href="{{ asset('css/story.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
 @endpush
 
 @section('content')
@@ -44,8 +46,10 @@
             </div>
 
             <div class="form-group mb-3">
-                <label class="form-label">Персонажи</label>
-                <div id="characters-container" class="characters-grid"></div>
+                <label for="characters-select" class="form-label">Персонажи</label>
+                <select class="form-control" id="characters-select" name="characters[]" multiple="multiple" style="width: 100%;">
+                    <!-- Опции будут добавлены через JavaScript -->
+                </select>
                 <div class="form-text">Выберите одного или нескольких персонажей</div>
             </div>
 
@@ -59,11 +63,12 @@
         </form>
 
         <div id="out" style="border:1px solid #ddd;padding:20px;border-radius:8px;min-height:160px;background:#f9f9f9;font-family:Georgia,serif;line-height:1.6"></div>
-        <div id="err" style="color:#b00020;margin-top:8px"></div>
+        <div id="err" style="color:#ff0000;margin-top:8px"></div>
     </div>
 @endsection
 
 @push('scripts')
+    <!-- СНАЧАЛА конфигурация -->
     <script>
         window.storyConfig = {
             streamUrl: '{{ route("story.generate") }}',
@@ -72,7 +77,15 @@
         };
     </script>
 
+    <!-- jQuery (нужен для Select2) -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+
+    <!-- Select2 -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- ПОТОМ marked.js -->
     <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
 
+    <!-- И В КОНЦЕ story.js -->
     <script src="{{ asset('js/story.js') }}"></script>
 @endpush
