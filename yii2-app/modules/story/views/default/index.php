@@ -25,6 +25,18 @@ StoryAsset::register($this);
 
     <?= $form->field($model,'age')->label('Возраст')->input('number',['min'=>1,'value'=>$model->age]) ?>
     <?= $form->field($model,'language')->label('Язык')->dropDownList(['ru'=>'Русский','kk'=>'Қазақша'],['value'=>$model->language, 'id'=>'language-select']) ?>
+    <?= $form->field($model,'genre')->label('Жанры')->dropDownList([
+            'adventure' => 'Приключения',
+            'fantasy' => 'Фэнтези',
+            'fairy_tale' => 'Волшебная сказка',
+            'comedy' => 'Комедия',
+            'drama' => 'Драма',
+            'animal_tale' => 'Сказка о животных',
+            'family_tale' => 'Семейная сказка',
+            'educational_tale' => 'Поучительная сказка',
+            'detective' => 'Детектив',
+            'travel' => 'Путешествие'
+    ],['value'=>$model->genre, 'id'=>'language-select1']) ?>
 
     <div class="form-group">
         <label class="control-label">Персонажи</label>

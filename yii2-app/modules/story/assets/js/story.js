@@ -100,6 +100,8 @@
         const fd = new FormData(form);
         const age = Number(fd.get('StoryForm[age]') || 0);
         const language = fd.get('StoryForm[language]');
+        const genre = fd.get('StoryForm[genre]');
+        console.log(genre);
         const characters = fd.getAll('StoryForm[characters][]');
 
         if (age <= 0) {
@@ -134,7 +136,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': csrf
                 },
-                body: JSON.stringify({ age, language, characters })
+                body: JSON.stringify({ age, language, genre, characters })
             });
 
             if (!res.ok) {

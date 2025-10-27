@@ -7,12 +7,13 @@ class StoryForm extends Model
 {
     public $age;
     public $language;
+    public $genre;
     public $characters = [];
 
     public function rules()
     {
         return [
-            [['age','language'], 'required'],
+            [['age','language', 'genre'], 'required'],
             ['age','integer','min'=>1],
             ['language','in','range'=>['ru','kk']],
             ['characters','each','rule'=>['string']],

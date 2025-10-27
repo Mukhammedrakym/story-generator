@@ -14,6 +14,7 @@ class DefaultController extends Controller
         $model = new StoryForm();
         $model->age = 6;
         $model->language = 'kk';
+        $model->genre = 'adventure';
         $model->characters = ['Қоян', 'Алдар Көсе'];
 
         return $this->render('index', ['model' => $model]);
@@ -32,7 +33,6 @@ class DefaultController extends Controller
     public function actionStream()
     {
         $payload = \Yii::$app->request->getBodyParams();
-
         $model = new StoryForm();
         $model->attributes = $payload;
 
@@ -48,6 +48,7 @@ class DefaultController extends Controller
         $service->streamToBrowser([
             'age'        => (int)$model->age,
             'language'   => $model->language,
+            'genre'      => $model->genre,
             'characters' => array_values($model->characters),
         ]);
 
